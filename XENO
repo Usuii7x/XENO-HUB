@@ -12,7 +12,7 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
     Name = "XENO HUB | POLY-Z",
     Icon = 71338090068856,
-    LoadingTitle = "Loading...",
+    LoadingTitle = "Carregnando...",
     LoadingSubtitle = "Author: alyssonzkn",
     Theme = "BlackWhite",
     ToggleUIKeybind = Enum.KeyCode.K,
@@ -37,27 +37,27 @@ local function getEquippedWeaponName()
 end
 
 -- Combat Tab
-local CombatTab = Window:CreateTab("⚔️ Combat", "Skull")
+local CombatTab = Window:CreateTab("⚔️ Combate", "Skull")
 
 -- Weapon Label
-local weaponLabel = CombatTab:CreateLabel("🔫 Current Weapon: Loading...")
+local weaponLabel = CombatTab:CreateLabel("🔫 Atraso de tiro: carregando...")
 
 -- Update label
 task.spawn(function()
     while true do
-        weaponLabel:Set("🔫 Current Weapon: " .. getEquippedWeaponName())
+        weaponLabel:Set("🔫 Arma atual: " .. getEquippedWeaponName())
         task.wait(0.1)
     end
 end)
 
 -- Auto Headshots
 local autoKill = false
-local shootDelay = 0.1
+local shootDelay = 0.5
 
 -- Text input for shot delay
 CombatTab:CreateInput({
-    Name = "⏱️ Shot delay (0-2 sec)",
-    PlaceholderText = "0.1",
+    Name = "⏱️ Atraso de tiro (0-5 sec)",
+    PlaceholderText = "0.5",
     RemoveTextAfterFocusLost = false,
     Callback = function(text)
         local num = tonumber(text)
@@ -111,7 +111,7 @@ CombatTab:CreateToggle({
 })
 
 CombatTab:CreateToggle({
-    Name = "⏩ Auto Skip Round",
+    Name = "⏩ Pular Rodada Automática",
     CurrentValue = false,
     Flag = "AutoSkipRound",
     Callback = function(state)
@@ -131,7 +131,7 @@ CombatTab:CreateToggle({
 })
 
 CombatTab:CreateSlider({
-    Name = "🏃‍♂️ Walk Speed",
+    Name = "🏃‍♂️ Velocidade de caminhada",
     Range = {16, 200},
     Increment = 1,
     Suffix = "units",
@@ -143,12 +143,12 @@ CombatTab:CreateSlider({
 })
 
 -- Misc Tab
-local MiscTab = Window:CreateTab("✨ Utilities", "Sparkles")
+local MiscTab = Window:CreateTab("✨ Utilitários", "Sparkles")
 
-MiscTab:CreateSection("🔧 Tools")
+MiscTab:CreateSection("🔧 Ferramentas")
 
 MiscTab:CreateButton({
-    Name = "🚪 Delete All Doors",
+    Name = "🚪 Excluir todas as portas",
     Callback = function()
         local doorsFolder = workspace:FindFirstChild("Doors")
         if doorsFolder then
@@ -168,7 +168,7 @@ MiscTab:CreateButton({
 })
 
 MiscTab:CreateButton({
-    Name = "🎯 Infinite Magazines",
+    Name = "🎯 munição infinita",
     Callback = function()
         local vars = player:FindFirstChild("Variables")
         if not vars then return end
@@ -192,10 +192,10 @@ MiscTab:CreateButton({
     end
 })
 
-MiscTab:CreateSection("💎 Enhancements Visual")
+MiscTab:CreateSection("💎 Melhorias visuais")
 
 MiscTab:CreateButton({
-    Name = "🌟 Activate All Perks",
+    Name = "🌟 Ative todas as vantagens",
     Callback = function()
         local vars = player:FindFirstChild("Variables")
         if not vars then return end
@@ -226,7 +226,7 @@ MiscTab:CreateButton({
 })
 
 MiscTab:CreateButton({
-    Name = "🔫 Enhance Weapons",
+    Name = "🔫 Aprimorar armas",
     Callback = function()
         local vars = player:FindFirstChild("Variables")
         if not vars then return end
@@ -252,7 +252,7 @@ MiscTab:CreateButton({
 
 
 MiscTab:CreateButton({
-    Name = "💫 Celestial Weapons",
+    Name = "💫 Armas Celestiais",
     Callback = function()
         local gunData = player:FindFirstChild("GunData")
         if not gunData then return end
@@ -272,14 +272,14 @@ MiscTab:CreateButton({
 })
 
 -- Open Tab
-local OpenTab = Window:CreateTab("🎁 Crates", "Gift")
+local OpenTab = Window:CreateTab("🎁 Caixas", "Gift")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local selectedQuantity = 1
 local selectedOutfitType = "Random" -- для Outfit кейсів
 
 OpenTab:CreateDropdown({
-    Name = "🔢 Open Quantity",
+    Name = "🔢 Quantidade aberta",
     Options = {"1", "25", "50", "200"},
     CurrentOption = "1",
     Flag = "OpenQuantity",
@@ -288,15 +288,15 @@ OpenTab:CreateDropdown({
     end,
 })
 
-OpenTab:CreateSection("📦 Auto Open Crates")
+OpenTab:CreateSection("📦 Caixas de abertura automática")
 
 -- 🎽 Випадаючий список типів для Outfit кейсів
 OpenTab:CreateDropdown({
-    Name = "👕 Outfit Type",
+    Name = "👕 Tipo de roupa",
     Options = {
-        "Random", "Hat", "torseaccessory", "legaccessory", "faceaccessory", 
-        "armaccessory", "backaccessory", "gloves", "shoes", "hair",
-        "shirt", "pants", "haircolor", "skincolor", "face"
+        "aleatório", "Chapéu", "acessório de torso", "acessório de perna", "acessório facial", 
+        "acessório de braço", "acessório de costas", "luvas", "sapatos", "cabelo",
+        "camisa", "calças", "cor de cabelo", "cor da pele", "rosto"
     },
     CurrentOption = "Random",
     Callback = function(option)
@@ -304,7 +304,7 @@ OpenTab:CreateDropdown({
     end,
 })
 
--- 🕶️ Camo Crates
+-- 🕶️ Caixas Camufladas
 local autoOpenCamo = false
 OpenTab:CreateToggle({
     Name = "🕶️ Camo Crates",
@@ -327,7 +327,7 @@ OpenTab:CreateToggle({
     end
 })
 
--- 👕 Outfit Crates
+-- 👕 Caixas de Roupas
 local autoOpenOutfit = false
 OpenTab:CreateToggle({
     Name = "👕 Outfit Crates",
@@ -350,7 +350,7 @@ OpenTab:CreateToggle({
     end
 })
 
--- 🐾 Pet Crates
+-- 🐾 Caixas de Pet
 local autoOpenPet = false
 OpenTab:CreateToggle({
     Name = "🐾 Pet Crates",
@@ -373,7 +373,7 @@ OpenTab:CreateToggle({
     end
 })
 
--- 🔫 Weapon Crates
+-- 🔫 Caixas de Armas
 local autoOpenGun = false
 OpenTab:CreateToggle({
     Name = "🔫 Weapon Crates",
@@ -453,7 +453,7 @@ end)
 
 -- 🔘 Кнопка в меню
 ModTab:CreateToggle({
-    Name = "🌪️ Orbit Around Boss",
+    Name = "🌪️ Órbita ao Redor do Chefe",
     CurrentValue = false,
     Callback = function(value)
         spinning = value
@@ -462,7 +462,7 @@ ModTab:CreateToggle({
 
 -- ⚙️ Слайдер швидкості
 ModTab:CreateSlider({
-    Name = "⚡ Rotation Speed",
+    Name = "⚡ Velocidade de Rotação",
     Range = {1, 20},
     Increment = 0.1,
     Suffix = "x",
@@ -474,7 +474,7 @@ ModTab:CreateSlider({
 
 -- 📏 Слайдер радіуса
 ModTab:CreateSlider({
-    Name = "📏 Orbit Radius",
+    Name = "📏 Raio da Órbita",
     Range = {5, 100},
     Increment = 1,
     Suffix = "units",
@@ -486,7 +486,7 @@ ModTab:CreateSlider({
 
 
 ModTab:CreateButton({
-    Name = "🛸 TP & Smart Platform",
+    Name = "🛸 TP para Plataforma Inteligente",
     Callback = function()
         local Players = game:GetService("Players")
         local RunService = game:GetService("RunService")
