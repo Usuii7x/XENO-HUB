@@ -13,7 +13,7 @@ local Window = Rayfield:CreateWindow({
     Name = "XENO HUB | POLY-Z",
     Icon = 71338090068856,
     LoadingTitle = "Carregnando...",
-    LoadingSubtitle = "Autor: alyssonzkn",
+    LoadingSubtitle = "Autor: @alyssonzkn",
     Theme = "BlackWhite",
     ToggleUIKeybind = Enum.KeyCode.K,
     ConfigurationSaving = {
@@ -51,7 +51,7 @@ task.spawn(function()
 end)
 
 -- Auto Headshots
-local autoKill = false
+local autoKill = true
 local shootDelay = 0.5
 
 -- Text input for shot delay
@@ -72,7 +72,7 @@ CombatTab:CreateInput({
         else
             Rayfield:Notify({
                 Title = "Error",
-                Content = "Please enter a number between 0 and 2",
+                Content = "Please enter a number between 0 and 5",
                 Duration = 3,
                 Image = 4483362458
             })
@@ -148,7 +148,7 @@ local MiscTab = Window:CreateTab("✨ Utilitários", "Sparkles")
 MiscTab:CreateSection("🔧 Ferramentas")
 
 MiscTab:CreateButton({
-    Name = "🚪 Excluir todas as portas",
+    Name = "🚪 Excluir Todas as Portas",
     Callback = function()
         local doorsFolder = workspace:FindFirstChild("Doors")
         if doorsFolder then
@@ -168,7 +168,7 @@ MiscTab:CreateButton({
 })
 
 MiscTab:CreateButton({
-    Name = "🎯 munição infinita",
+    Name = "🎯 Munição Infinita",
     Callback = function()
         local vars = player:FindFirstChild("Variables")
         if not vars then return end
@@ -195,7 +195,7 @@ MiscTab:CreateButton({
 MiscTab:CreateSection("💎 Melhorias visuais")
 
 MiscTab:CreateButton({
-    Name = "🌟 Ative todas as vantagens",
+    Name = "🌟 Ative Todas as Vantagens",
     Callback = function()
         local vars = player:FindFirstChild("Variables")
         if not vars then return end
@@ -226,7 +226,7 @@ MiscTab:CreateButton({
 })
 
 MiscTab:CreateButton({
-    Name = "🔫 Aprimorar armas",
+    Name = "🔫 Aprimorar Armas",
     Callback = function()
         local vars = player:FindFirstChild("Variables")
         if not vars then return end
@@ -292,7 +292,7 @@ OpenTab:CreateSection("📦 Caixas de abertura automática")
 
 -- 🎽 Випадаючий список типів для Outfit кейсів
 OpenTab:CreateDropdown({
-    Name = "👕 Tipo de roupa",
+    Name = "👕 Tipo de Roupa",
     Options = {
         "Aleatório", "Chapéu", "Acessório de Torso", "Acessório de Perna", "Acessório Facial", 
         "Acessório de Braço", "Acessório de Costas", "Luvas", "Sapatos", "Cabelo",
