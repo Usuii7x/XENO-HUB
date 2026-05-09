@@ -134,7 +134,7 @@ CombatTab:CreateSlider({
     Name = "🏃‍♂️ Velocidade de caminhada",
     Range = {16, 200},
     Increment = 1,
-    Suffix = "units",
+    Suffix = "unidades",
     CurrentValue = 16,
     Flag = "WalkSpeed",
     Callback = function(Value)
@@ -252,7 +252,7 @@ MiscTab:CreateButton({
 
 
 MiscTab:CreateButton({
-    Name = "💫 Armas Celestiais",
+    Name = "💫 Armas Celestiais | Apenas Lobby",
     Callback = function()
         local gunData = player:FindFirstChild("GunData")
         if not gunData then return end
@@ -294,11 +294,11 @@ OpenTab:CreateSection("📦 Caixas de abertura automática")
 OpenTab:CreateDropdown({
     Name = "👕 Tipo de roupa",
     Options = {
-        "aleatório", "Chapéu", "acessório de torso", "acessório de perna", "acessório facial", 
-        "acessório de braço", "acessório de costas", "luvas", "sapatos", "cabelo",
-        "camisa", "calças", "cor de cabelo", "cor da pele", "rosto"
+        "Aleatório", "Chapéu", "Acessório de Torso", "Acessório de Perna", "Acessório Facial", 
+        "Acessório de Braço", "Acessório de Costas", "Luvas", "Sapatos", "Cabelo",
+        "Camisa", "Calças", "Cor de Cabelo", "Cor da Pele", "Rosto"
     },
-    CurrentOption = "Random",
+    CurrentOption = "Aleatório",
     Callback = function(option)
         selectedOutfitType = option
     end,
@@ -307,7 +307,7 @@ OpenTab:CreateDropdown({
 -- 🕶️ Caixas Camufladas
 local autoOpenCamo = false
 OpenTab:CreateToggle({
-    Name = "🕶️ Camo Crates",
+    Name = "🕶️ Caixas Camufladas",
     CurrentValue = false,
     Callback = function(state)
         autoOpenCamo = state
@@ -330,7 +330,7 @@ OpenTab:CreateToggle({
 -- 👕 Caixas de Roupas
 local autoOpenOutfit = false
 OpenTab:CreateToggle({
-    Name = "👕 Outfit Crates",
+    Name = "👕 Caixas de Roupas",
     CurrentValue = false,
     Callback = function(state)
         autoOpenOutfit = state
@@ -353,7 +353,7 @@ OpenTab:CreateToggle({
 -- 🐾 Caixas de Pet
 local autoOpenPet = false
 OpenTab:CreateToggle({
-    Name = "🐾 Pet Crates",
+    Name = "🐾 Caixas de Pet",
     CurrentValue = false,
     Callback = function(state)
         autoOpenPet = state
@@ -376,7 +376,7 @@ OpenTab:CreateToggle({
 -- 🔫 Caixas de Armas
 local autoOpenGun = false
 OpenTab:CreateToggle({
-    Name = "🔫 Weapon Crates",
+    Name = "🔫 Caixas de Armas",
     CurrentValue = false,
     Callback = function(state)
         autoOpenGun = state
@@ -477,7 +477,7 @@ ModTab:CreateSlider({
     Name = "📏 Raio da Órbita",
     Range = {5, 100},
     Increment = 1,
-    Suffix = "units",
+    Suffix = "unidades",
     CurrentValue = 15,
     Callback = function(val)
         radius = val  -- ✅ оновлює глобальну змінну
