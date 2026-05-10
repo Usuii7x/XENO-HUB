@@ -252,7 +252,7 @@ MiscTab:CreateButton({
 
 
 MiscTab:CreateButton({
-    Name = "💫 Armas Celestiais | Apenas Lobby",
+    Name = "💫 Armas Celestiais",
     Callback = function()
         local gunData = player:FindFirstChild("GunData")
         if not gunData then return end
