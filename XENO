@@ -551,6 +551,60 @@ ModTab:CreateButton({
     end
 })
 
+-- ==================== ANTI AFK ====================
+local AntiAFKTab = MiscTab  -- Você pode mudar para um tab específico se quiser
+
+local antiAFKEnabled = false
+local antiAFKConnection = nil
+
+AntiAFKTab:CreateSection("🛡️ Anti-AFK")
+
+AntiAFKTab:CreateToggle({
+    Name = "🔄 Ativar Anti-AFK",
+    CurrentValue = false,
+    Flag = "AntiAFK",
+    Callback = function(state)
+        antiAFKEnabled = state
+        
+        if state then
+            Rayfield:Notify({
+                Title = "Anti-AFK",
+                Content = "Anti-AFK ativado! Você não será mais kickado por inatividade.",
+                Duration = 4,
+                Image = 4483362458
+            })
+            
+            antiAFKConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if not antiAFKEnabled then return end
+                
+                local vu = game:GetService("VirtualUser")
+                vu:CaptureController()
+                vu:ClickButton2(Vector2.new()) -- Simula movimento do mouse
+                
+                -- Pequeno pulo aleatório de vez em quando (mais natural)
+                if math.random(1, 80) == 1 then
+                    local character = player.Character
+                    local humanoid = character and character:FindFirstChild("Humanoid")
+                    if humanoid then
+                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    end
+                end
+            end)
+        else
+            if antiAFKConnection then
+                antiAFKConnection:Disconnect()
+                antiAFKConnection = nil
+            end
+            Rayfield:Notify({
+                Title = "Anti-AFK",
+                Content = "Anti-AFK desativado.",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
 
 
 
