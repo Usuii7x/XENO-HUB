@@ -1,558 +1,290 @@
--- Services
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
-local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+--[[
+    Script: Michael's Zombies Advanced GUI
+    Versão: 2.1 - Corrigida e Otimizada
+    Executor: Xeno, Synapse, Fluxus, Solara
+    Tema: Dark com Roxo
+]]
 
--- Load Rayfield UI Library
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+if not game:IsLoaded() then game.Loaded:Wait() end
 
--- UI Window Configuration
-local Window = Rayfield:CreateWindow({
-    Name = "XENO HUB | POLY-Z",
-    Icon = 71338090068856,
-    LoadingTitle = "Carregnando...",
-    LoadingSubtitle = "Autor: @alyssonzkn",
-    Theme = "BlackWhite",
-    ToggleUIKeybind = Enum.KeyCode.K,
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "ZombieHub",
-        FileName = "Config"
-    }
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+local Window = Fluent:CreateWindow({
+    Title = "Michael's Zombies",
+    SubTitle = "Advanced Script v2.1",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 520),
+    Acrylic = false,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.RightControl
 })
 
--- Utility Functions
-local function getEquippedWeaponName()
-    local model = workspace:FindFirstChild("Players"):FindFirstChild(player.Name)
-    if model then
-        for _, child in ipairs(model:GetChildren()) do
-            if child:IsA("Model") then
-                return child.Name
-            end
-        end
-    end
-    return "M1911"
+local Tabs = {
+    Home = Window:AddTab({ Title = "Home", Icon = "home" }),
+    Combat = Window:AddTab({ Title = "Combat", Icon = "swords" }),
+    AutoFarm = Window:AddTab({ Title = "Auto Farm", Icon = "pickaxe" }),
+    Player = Window:AddTab({ Title = "Player", Icon = "user" }),
+    Misc = Window:AddTab({ Title = "Misc", Icon = "brush" })
+}
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+
+local state = {
+    KillAura = false,
+    KillAuraKnife = false,
+    KillAuraRange = 25,
+    HeadshotOnly = false,
+    AutoShoot = false,
+    AutoCollectPerks = false,
+    AutoCollectPoints = false,
+    AutoPack = false,
+    GodMode = false,
+    InfAmmo = false,
+    NoReload = false,
+    InfSprint = false,
+    SpeedValue = 16,
+    JumpValue = 50,
+    ESP = false,
+}
+
+-- Notificação
+local function Notify(Title, Content, Duration)
+    Fluent:Notify({ Title = Title, Content = Content, Duration = Duration or 3 })
 end
 
--- Combat Tab
-local CombatTab = Window:CreateTab("⚔️ Combate", "Skull")
+-- Pegar arma atual
+local function GetCurrentWeapon()
+    if Character and Character:FindFirstChildWhichIsA("Tool") then
+        return Character:FindFirstChildWhichIsA("Tool")
+    end
+    if Player.Backpack then
+        return Player.Backpack:FindFirstChildWhichIsA("Tool")
+    end
+    return nil
+end
 
--- Weapon Label
-local weaponLabel = CombatTab:CreateLabel("🔫 Atraso de tiro: carregando...")
+--[[ ==================== HOME ==================== ]]
+local HomeSection = Tabs.Home:AddSection("Dashboard")
+HomeSection:AddParagraph({
+    Title = "Bem-vindo, " .. Player.Name,
+    Content = "Script carregado com sucesso!\nMichael's Zombies - Modo Avançado"
+})
 
--- Update label
+--[[ ==================== COMBAT ==================== ]]
+local CombatSection = Tabs.Combat:AddSection("Kill Aura & Combate")
+
+CombatSection:AddToggle("KillAuraToggle", {
+    Title = "Kill Aura",
+    Description = "Ataca zumbis próximos automaticamente",
+    Default = false,
+    Callback = function(v) state.KillAura = v end
+})
+
+CombatSection:AddToggle("KnifeMode", {
+    Title = "Modo Faca (Knife Aura)",
+    Description = "Prioriza usar a faca para kill aura",
+    Default = false,
+    Callback = function(v) state.KillAuraKnife = v end
+})
+
+CombatSection:AddSlider("RangeSlider", {
+    Title = "Alcance do Kill Aura",
+    Description = "Distância máxima",
+    Default = 25,
+    Min = 10,
+    Max = 50,
+    Rounding = 0,
+    Callback = function(v) state.KillAuraRange = v end
+})
+
+CombatSection:AddToggle("HeadshotOnly", {
+    Title = "Headshot Only",
+    Default = false,
+    Callback = function(v) state.HeadshotOnly = v end
+})
+
+CombatSection:AddToggle("AutoShoot", {
+    Title = "Auto Shoot",
+    Default = false,
+    Callback = function(v) state.AutoShoot = v end
+})
+
+-- Loop do Kill Aura (melhorado)
 task.spawn(function()
-    while true do
-        weaponLabel:Set("🔫 Arma atual: " .. getEquippedWeaponName())
-        task.wait(0.1)
+    while task.wait(0.08) do
+        if not state.KillAura then continue end
+
+        Character = Player.Character
+        if not Character or not Character:FindFirstChild("HumanoidRootPart") then continue end
+
+        local root = Character.HumanoidRootPart
+        local closest, dist = nil, state.KillAuraRange
+
+        for _, model in ipairs(Workspace:GetChildren()) do
+            if model:IsA("Model") and model:FindFirstChild("Humanoid") and model.Humanoid.Health > 0 then
+                if string.find(model.Name:lower(), "zombie") or model:FindFirstChild("Zombie") then
+                    local zRoot = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
+                    if zRoot then
+                        local d = (root.Position - zRoot.Position).Magnitude
+                        if d < dist then
+                            dist = d
+                            closest = model
+                        end
+                    end
+                end
+            end
+        end
+
+        if closest and dist <= state.KillAuraRange then
+            local targetPart = state.HeadshotOnly and closest:FindFirstChild("Head") or closest:FindFirstChild("HumanoidRootPart")
+
+            -- Knife Mode
+            if state.KillAuraKnife then
+                local knife = Player.Backpack:FindFirstChild("Knife") or Character:FindFirstChild("Knife")
+                if knife then
+                    Character.Humanoid:EquipTool(knife)
+                end
+            end
+
+            -- Ataque
+            local tool = GetCurrentWeapon()
+            if tool then
+                if state.AutoShoot and tool:FindFirstChild("RemoteEvent") then
+                    tool.RemoteEvent:FireServer(targetPart.Position)
+                end
+            end
+        end
     end
 end)
 
--- Auto Headshots
-local autoKill = true
-local shootDelay = 0.5
+--[[ ==================== AUTO FARM ==================== ]]
+local FarmSection = Tabs.AutoFarm:AddSection("Farm Automático")
 
--- Text input for shot delay
-CombatTab:CreateInput({
-    Name = "⏱️ Atraso de tiro (0-5 sec)",
-    PlaceholderText = "0.5",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(text)
-        local num = tonumber(text)
-        if num and num >= 0 and num <= 2 then
-            shootDelay = num
-            Rayfield:Notify({
-                Title = "Success",
-                Content = "Shot delay set to "..num.." seconds",
-                Duration = 3,
-                Image = 4483362458
-            })
+FarmSection:AddToggle("AutoPerks", { Title = "Auto Collect Perks", Callback = function(v) state.AutoCollectPerks = v end })
+FarmSection:AddToggle("AutoPoints", { Title = "Auto Collect Points/Essence", Callback = function(v) state.AutoCollectPoints = v end })
+
+FarmSection:AddButton({
+    Title = "Pack-a-Punch (1 Clique)",
+    Description = "Tenta melhorar a arma atual",
+    Callback = function()
+        Notify("Pack-a-Punch", "Tentando melhorar arma...", 2)
+        local papRemote = ReplicatedStorage:FindFirstChild("PackAPunch") or ReplicatedStorage:FindFirstChild("UpgradeWeapon")
+        if papRemote then
+            papRemote:FireServer()
         else
-            Rayfield:Notify({
-                Title = "Error",
-                Content = "Please enter a number between 0 and 5",
-                Duration = 3,
-                Image = 4483362458
-            })
-        end
-    end,
-})
-
-CombatTab:CreateToggle({
-    Name = "🔪 Auto Headshots",
-    CurrentValue = false,
-    Flag = "AutoKillZombies",
-    Callback = function(state)
-        autoKill = state
-        if state then
-            task.spawn(function()
-                while autoKill do
-                    local enemies = workspace:FindFirstChild("Enemies")
-                    local shootRemote = Remotes:FindFirstChild("ShootEnemy")
-                    if enemies and shootRemote then
-                        local weapon = getEquippedWeaponName()
-                        for _, zombie in pairs(enemies:GetChildren()) do
-                            if zombie:IsA("Model") then
-                                local head = zombie:FindFirstChild("Head")
-                                if head then
-                                    local args = {zombie, head, head.Position, 0.5, weapon}
-                                    pcall(function() shootRemote:FireServer(unpack(args)) end)
-                                end
-                            end
-                        end
-                    end
-                    task.wait(shootDelay)
-                end
-            end)
+            Notify("Erro", "Remote do Pack-a-Punch não encontrado", 3)
         end
     end
 })
 
-CombatTab:CreateToggle({
-    Name = "⏩ Pular Rodada Automática",
-    CurrentValue = false,
-    Flag = "AutoSkipRound",
-    Callback = function(state)
-        autoSkip = state
-        if state then
-            task.spawn(function()
-                while autoSkip do
-                    local skip = Remotes:FindFirstChild("CastClientSkipVote")
-                    if skip then
-                        pcall(function() skip:FireServer() end)
-                    end
-                    task.wait(0.1)
-                end
-            end)
-        end
-    end
-})
+-- Loop de Coleta
+task.spawn(function()
+    while task.wait(0.4) do
+        if not state.AutoCollectPerks and not state.AutoCollectPoints then continue end
+        Character = Player.Character
+        if not Character or not Character:FindFirstChild("HumanoidRootPart") then continue end
 
-CombatTab:CreateSlider({
-    Name = "🏃‍♂️ Velocidade de caminhada",
-    Range = {16, 200},
-    Increment = 1,
-    Suffix = "unidades",
-    CurrentValue = 16,
-    Flag = "WalkSpeed",
-    Callback = function(Value)
-        game.Players.LocalPlayer.Character:WaitForChild("Humanoid").WalkSpeed = Value
-    end
-})
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Part") or obj:IsA("Model") then
+                local isPerk = state.AutoCollectPerks and (obj.Name:find("Perk") or obj.Name:find("Power"))
+                local isPoint = state.AutoCollectPoints and (obj.Name:find("Point") or obj.Name:find("Essence") or obj.Name:find("Drop"))
 
--- Misc Tab
-local MiscTab = Window:CreateTab("✨ Utilitários", "Sparkles")
-
-MiscTab:CreateSection("🔧 Ferramentas")
-
-MiscTab:CreateButton({
-    Name = "🚪 Excluir Todas as Portas",
-    Callback = function()
-        local doorsFolder = workspace:FindFirstChild("Doors")
-        if doorsFolder then
-            for _, group in pairs(doorsFolder:GetChildren()) do
-                if group:IsA("Folder") or group:IsA("Model") then
-                    group:Destroy()
-                end
-            end
-            Rayfield:Notify({
-                Title = "Success",
-                Content = "All doors deleted!",
-                Duration = 3,
-                Image = 4483362458
-            })
-        end
-    end
-})
-
-MiscTab:CreateButton({
-    Name = "🎯 Munição Infinita",
-    Callback = function()
-        local vars = player:FindFirstChild("Variables")
-        if not vars then return end
-
-        local ammoAttributes = {  
-            "Primary_Mag",  
-            "Secondary_Mag"  
-        }  
-
-        for _, attr in ipairs(ammoAttributes) do  
-            if vars:GetAttribute(attr) ~= nil then  
-                vars:SetAttribute(attr, 100000000)  
-            end  
-        end
-        Rayfield:Notify({
-            Title = "Magazines",
-            Content = "Infinite magazines set!",
-            Duration = 3,
-            Image = 4483362458
-        })
-    end
-})
-
-MiscTab:CreateSection("💎 Melhorias visuais")
-
-MiscTab:CreateButton({
-    Name = "🌟 Ative Todas as Vantagens",
-    Callback = function()
-        local vars = player:FindFirstChild("Variables")
-        if not vars then return end
-
-        local perks = {  
-            "Bandoiler_Perk",  
-            "DoubleUp_Perk",  
-            "Haste_Perk",  
-            "Tank_Perk",  
-            "GasMask_Perk",  
-            "DeadShot_Perk",  
-            "DoubleMag_Perk",  
-            "WickedGrenade_Perk"  
-        }  
-
-        for _, perk in ipairs(perks) do  
-            if vars:GetAttribute(perk) ~= nil then  
-                vars:SetAttribute(perk, true)  
-            end  
-        end
-        Rayfield:Notify({
-            Title = "Perks",
-            Content = "All perks activated!",
-            Duration = 3,
-            Image = 4483362458
-        })
-    end
-})
-
-MiscTab:CreateButton({
-    Name = "🔫 Aprimorar Armas",
-    Callback = function()
-        local vars = player:FindFirstChild("Variables")
-        if not vars then return end
-
-        local enchants = {  
-            "Primary_Enhanced",  
-            "Secondary_Enhanced"  
-        }  
-
-        for _, attr in ipairs(enchants) do  
-            if vars:GetAttribute(attr) ~= nil then  
-                vars:SetAttribute(attr, true)  
-            end  
-        end
-        Rayfield:Notify({
-            Title = "Enhancement",
-            Content = "Weapons enhanced!",
-            Duration = 3,
-            Image = 4483362458
-        })
-    end
-})
-
-
-MiscTab:CreateButton({
-    Name = "💫 Armas Celestiais",
-    Callback = function()
-        local gunData = player:FindFirstChild("GunData")
-        if not gunData then return end
-
-        for _, value in ipairs(gunData:GetChildren()) do  
-            if value:IsA("StringValue") then  
-                value.Value = "celestial"  
-            end  
-        end
-        Rayfield:Notify({
-            Title = "Weapons",
-            Content = "Set to Celestial tier!",
-            Duration = 3,
-            Image = 4483362458
-        })
-    end
-})
-
--- Open Tab
-local OpenTab = Window:CreateTab("🎁 Caixas", "Gift")
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local selectedQuantity = 1
-local selectedOutfitType = "Random" -- для Outfit кейсів
-
-OpenTab:CreateDropdown({
-    Name = "🔢 Quantidade aberta",
-    Options = {"1", "25", "50", "200"},
-    CurrentOption = "1",
-    Flag = "OpenQuantity",
-    Callback = function(Option)
-        selectedQuantity = tonumber(Option)
-    end,
-})
-
-OpenTab:CreateSection("📦 Caixas de abertura automática")
-
--- 🎽 Випадаючий список типів для Outfit кейсів
-OpenTab:CreateDropdown({
-    Name = "👕 Tipo de Roupa",
-    Options = {
-        "Aleatório", "Chapéu", "Acessório de Torso", "Acessório de Perna", "Acessório Facial", 
-        "Acessório de Braço", "Acessório de Costas", "Luvas", "Sapatos", "Cabelo",
-        "Camisa", "Calças", "Cor de Cabelo", "Cor da Pele", "Rosto"
-    },
-    CurrentOption = "Aleatório",
-    Callback = function(option)
-        selectedOutfitType = option
-    end,
-})
-
--- 🕶️ Caixas Camufladas
-local autoOpenCamo = false
-OpenTab:CreateToggle({
-    Name = "🕶️ Caixas Camufladas",
-    CurrentValue = false,
-    Callback = function(state)
-        autoOpenCamo = state
-        if state then
-            task.spawn(function()
-                while autoOpenCamo do
-                    pcall(function()
-                        for i = 1, selectedQuantity do
-                            ReplicatedStorage.Remotes.OpenCamoCrate:InvokeServer("Random")
-                            task.wait(0.1)
-                        end
-                    end)
-                    task.wait(1)
-                end
-            end)
-        end
-    end
-})
-
--- 👕 Caixas de Roupas
-local autoOpenOutfit = false
-OpenTab:CreateToggle({
-    Name = "👕 Caixas de Roupas",
-    CurrentValue = false,
-    Callback = function(state)
-        autoOpenOutfit = state
-        if state then
-            task.spawn(function()
-                while autoOpenOutfit do
-                    pcall(function()
-                        for i = 1, selectedQuantity do
-                            ReplicatedStorage.Remotes.OpenOutfitCrate:InvokeServer(selectedOutfitType)
-                            task.wait(0.1)
-                        end
-                    end)
-                    task.wait(1)
-                end
-            end)
-        end
-    end
-})
-
--- 🐾 Caixas de Pet
-local autoOpenPet = false
-OpenTab:CreateToggle({
-    Name = "🐾 Caixas de Pet",
-    CurrentValue = false,
-    Callback = function(state)
-        autoOpenPet = state
-        if state then
-            task.spawn(function()
-                while autoOpenPet do
-                    pcall(function()
-                        for i = 1, selectedQuantity do
-                            ReplicatedStorage.Remotes.OpenPetCrate:InvokeServer(1)
-                            task.wait(0.1)
-                        end
-                    end)
-                    task.wait(0.1)
-                end
-            end)
-        end
-    end
-})
-
--- 🔫 Caixas de Armas
-local autoOpenGun = false
-OpenTab:CreateToggle({
-    Name = "🔫 Caixas de Armas",
-    CurrentValue = false,
-    Callback = function(state)
-        autoOpenGun = state
-        if state then
-            task.spawn(function()
-                while autoOpenGun do
-                    pcall(function()
-                        for i = 1, selectedQuantity do
-                            ReplicatedStorage.Remotes.OpenGunCrate:InvokeServer(1)
-                            task.wait(0.1)
-                        end
-                    end)
-                    task.wait(0.1)
-                end
-            end)
-        end
-    end
-})
-
-
--- Mod Tab
-local ModTab = Window:CreateTab("🌀 Mods", "Skull")
-
--- ⬇ Змінні оголошуються глобально (всередині скрипта, але поза функціями)
-local spinning = false
-local angle = 0
-local speed = 5      -- ✅ глобально
-local radius = 15    -- ✅ глобально
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
-local HRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-
-player.CharacterAdded:Connect(function(char)
-    HRP = char:WaitForChild("HumanoidRootPart")
-end)
-
--- 🔁 Головне коло
-RunService.RenderStepped:Connect(function(dt)
-    if spinning and HRP then
-        local function findNearestBoss()
-            local bosses = {
-                workspace.Enemies:FindFirstChild("GoblinKing"),
-                workspace.Enemies:FindFirstChild("CaptainBoom"),
-                workspace.Enemies:FindFirstChild("Fungarth")
-            }
-
-            local nearestBoss = nil
-            local shortestDistance = math.huge
-
-            for _, boss in pairs(bosses) do
-                if boss and boss:FindFirstChild("Head") then
-                    local distance = (boss.Head.Position - HRP.Position).Magnitude
-                    if distance < shortestDistance then
-                        shortestDistance = distance
-                        nearestBoss = boss
+                if (isPerk or isPoint) and obj:FindFirstChild("TouchInterest") then
+                    local root = Character.HumanoidRootPart
+                    if (root.Position - obj.Position).Magnitude < 20 then
+                        firetouchinterest(root, obj, 0)
+                        task.wait(0.05)
+                        firetouchinterest(root, obj, 1)
                     end
                 end
             end
-            return nearestBoss
-        end
-
-        local boss = findNearestBoss()
-        if boss and boss:FindFirstChild("Head") then
-            angle += dt * speed  -- ✅ використовує глобальну змінну
-            local bossPos = boss.Head.Position
-            local offset = Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius -- ✅ радіус
-            local orbitPos = bossPos + offset
-            HRP.CFrame = CFrame.new(Vector3.new(orbitPos.X, bossPos.Y, orbitPos.Z), bossPos)
         end
     end
 end)
 
--- 🔘 Кнопка в меню
-ModTab:CreateToggle({
-    Name = "🌪️ Órbita ao Redor do Chefe",
-    CurrentValue = false,
-    Callback = function(value)
-        spinning = value
-    end
-})
+--[[ ==================== PLAYER ==================== ]]
+local PlayerSection = Tabs.Player:AddSection("Modificações do Jogador")
 
--- ⚙️ Слайдер швидкості
-ModTab:CreateSlider({
-    Name = "⚡ Velocidade de Rotação",
-    Range = {1, 20},
-    Increment = 0.1,
-    Suffix = "x",
-    CurrentValue = 5,
-    Callback = function(val)
-        speed = val   -- ✅ оновлює глобальну змінну
-    end
-})
-
--- 📏 Слайдер радіуса
-ModTab:CreateSlider({
-    Name = "📏 Raio da Órbita",
-    Range = {5, 100},
-    Increment = 1,
-    Suffix = "unidades",
-    CurrentValue = 15,
-    Callback = function(val)
-        radius = val  -- ✅ оновлює глобальну змінну
-    end
-})
-
-
-ModTab:CreateButton({
-    Name = "🛸 TP para Plataforma Inteligente",
-    Callback = function()
-        local Players = game:GetService("Players")
-        local RunService = game:GetService("RunService")
-        local player = Players.LocalPlayer
-        local HRP = player.Character and player.Character:WaitForChild("HumanoidRootPart")
-
-        if not HRP then
-            warn("❌ HumanoidRootPart не знайдено")
-            return
+PlayerSection:AddToggle("GodMode", {
+    Title = "God Mode",
+    Callback = function(v)
+        state.GodMode = v
+        if v and Character and Character:FindFirstChild("Humanoid") then
+            Character.Humanoid.MaxHealth = math.huge
+            Character.Humanoid.Health = math.huge
         end
-
-        local currentPos = HRP.Position
-        local targetPos = currentPos + Vector3.new(0, 60, 0)
-
-        -- 🧱 Створюємо платформу
-        local platform = Instance.new("Part")
-        platform.Size = Vector3.new(20, 1, 20)
-        platform.Anchored = true
-        platform.Position = targetPos - Vector3.new(0, 2, 0)
-        platform.Color = Color3.fromRGB(120, 120, 120)
-        platform.Material = Enum.Material.Metal
-        platform.Name = "SmartPlatform"
-        platform.Parent = workspace
-
-        -- ⏫ Телепорт гравця трохи вище платформи
-        HRP.CFrame = CFrame.new(targetPos + Vector3.new(0, 2, 0))
-
-        -- ⏱️ Таймер самознищення, коли гравець сходить
-        local isStanding = true
-        local lastTouch = tick()
-
-        -- Перевірка кожен кадр
-        local conn
-        conn = RunService.RenderStepped:Connect(function()
-            if not platform or not platform.Parent then
-                conn:Disconnect()
-                return
-            end
-
-            local char = player.Character
-            local humanoidRoot = char and char:FindFirstChild("HumanoidRootPart")
-            if not humanoidRoot then return end
-
-            local rayOrigin = humanoidRoot.Position
-            local rayDirection = Vector3.new(0, -5, 0)
-            local raycastParams = RaycastParams.new()
-            raycastParams.FilterDescendantsInstances = {char}
-            raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-
-            local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-            if raycastResult and raycastResult.Instance == platform then
-                -- Гравець стоїть на платформі
-                lastTouch = tick()
-            end
-
-            -- Якщо пройшло більше 10 секунд після того, як гравець стояв — видалити
-            if tick() - lastTouch > 10 then
-                platform:Destroy()
-                conn:Disconnect()
-            end
-        end)
     end
 })
 
+PlayerSection:AddToggle("InfAmmo", { Title = "Infinite Ammo", Callback = function(v) state.InfAmmo = v end })
+PlayerSection:AddToggle("NoReload", { Title = "No Reload", Callback = function(v) state.NoReload = v end })
+PlayerSection:AddToggle("InfSprint", { Title = "Infinite Sprint", Callback = function(v) state.InfSprint = v end })
 
+PlayerSection:AddSlider("Speed", {
+    Title = "WalkSpeed",
+    Default = 16,
+    Min = 16,
+    Max = 120,
+    Callback = function(v)
+        state.SpeedValue = v
+        if Character and Character:FindFirstChild("Humanoid") then
+            Character.Humanoid.WalkSpeed = v
+        end
+    end
+})
 
+-- Atualização ao respawn
+Player.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    task.wait(0.6)
+    local hum = newChar:WaitForChild("Humanoid")
+    hum.WalkSpeed = state.SpeedValue
+    if state.GodMode then
+        hum.MaxHealth = math.huge
+        hum.Health = math.huge
+    end
+end)
 
--- Load config
-Rayfield:LoadConfiguration()
+-- Loop Ammo / Reload
+task.spawn(function()
+    while task.wait(0.15) do
+        if state.InfAmmo or state.NoReload then
+            local tool = GetCurrentWeapon()
+            if tool then
+                if state.InfAmmo and tool:FindFirstChild("Ammo") then
+                    tool.Ammo.Value = 9999
+                end
+                if state.NoReload and tool:FindFirstChild("Reloading") then
+                    tool.Reloading.Value = false
+                end
+            end
+        end
+    end
+end)
+
+--[[ ==================== MISC ==================== ]]
+local MiscSection = Tabs.Misc:AddSection("Utilitários")
+
+MiscSection:AddButton({
+    Title = "Remove Fog + FPS Boost",
+    Callback = function()
+        game.Lighting.FogEnd = 100000
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        Notify("Performance", "Névoa removida e FPS Boost aplicado!", 3)
+    end
+})
+
+SaveManager:SetLibrary(Fluent)
+SaveManager:BuildConfigSection(Tabs.Misc)
+InterfaceManager:BuildInterfaceSection(Tabs.Misc)
+
+Window:SelectTab(1)
+Notify("Sucesso!", "Script carregado corretamente! Divirta-se!", 5)
