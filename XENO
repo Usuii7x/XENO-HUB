@@ -1,838 +1,558 @@
---[[
-    MICHAEL'S ZOMBIES - SCRIPT OTIMIZADO PARA XENO
-    Testado e funcional no executor Xeno
-    Data: 2026
-]]
-
--- [[ CONFIGURAÇÃO INICIAL ]]
-local Player = game:GetService("Players").LocalPlayer
-local Mouse = Player:GetMouse()
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local Lighting = game:GetService("Lighting")
-local Workspace = game:GetService("Workspace")
+-- Services
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
--- [[ CRIAR GUI - VERSÃO COMPATÍVEL COM XENO ]]
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MZ_Script"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+-- Load Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- [[ VARIÁVEIS GLOBAIS ]]
-local Features = {
-    KillAura = false,
-    KillAuraRange = 25,
-    KnifeMode = false,
-    AutoShoot = false,
-    AutoCollect = false,
-    AutoPoints = false,
-    GodMode = false,
-    InfAmmo = false,
-    NoReload = false,
-    InfSprint = false,
-    WalkSpeed = 16,
-    JumpPower = 50,
-    AntiAFK = false,
-    ESP = false,
-    NoFog = false,
-    Headshot = false
-}
+-- UI Window Configuration
+local Window = Rayfield:CreateWindow({
+    Name = "XENO HUB | POLY-Z",
+    Icon = 71338090068856,
+    LoadingTitle = "Carregnando...",
+    LoadingSubtitle = "Autor: @alyssonzkn",
+    Theme = "BlackWhite",
+    ToggleUIKeybind = Enum.KeyCode.K,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "ZombieHub",
+        FileName = "Config"
+    }
+})
 
--- [[ BIBLIOTECA UI SIMPLIFICADA E FUNCIONAL ]]
-local UI = {}
+-- Utility Functions
+local function getEquippedWeaponName()
+    local model = workspace:FindFirstChild("Players"):FindFirstChild(player.Name)
+    if model then
+        for _, child in ipairs(model:GetChildren()) do
+            if child:IsA("Model") then
+                return child.Name
+            end
+        end
+    end
+    return "M1911"
+end
 
-function UI:CreateWindow(title, subtitle)
-    local Window = {}
-    
-    -- Main Frame
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 500, 0, 450)
-    MainFrame.Position = UDim2.new(0.5, -250, 0.5, -225)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-    MainFrame.BackgroundTransparency = 0.05
-    MainFrame.BorderSizePixel = 0
-    MainFrame.ClipsDescendants = true
-    MainFrame.Parent = ScreenGui
-    
-    -- Corner
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 12)
-    Corner.Parent = MainFrame
-    
-    -- Stroke
-    local Stroke = Instance.new("UIStroke")
-    Stroke.Thickness = 1
-    Stroke.Color = Color3.fromRGB(100, 70, 180)
-    Stroke.Transparency = 0.6
-    Stroke.Parent = MainFrame
-    
-    -- Title Bar
-    local TitleBar = Instance.new("Frame")
-    TitleBar.Size = UDim2.new(1, 0, 0, 45)
-    TitleBar.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
-    TitleBar.BackgroundTransparency = 0.3
-    TitleBar.BorderSizePixel = 0
-    TitleBar.Parent = MainFrame
-    
-    local TitleCorner = Instance.new("UICorner")
-    TitleCorner.CornerRadius = UDim.new(0, 12)
-    TitleCorner.Parent = TitleBar
-    
-    local TitleText = Instance.new("TextLabel")
-    TitleText.Size = UDim2.new(1, -50, 1, 0)
-    TitleText.Position = UDim2.new(0, 15, 0, 0)
-    TitleText.BackgroundTransparency = 1
-    TitleText.Text = title
-    TitleText.TextColor3 = Color3.fromRGB(210, 180, 255)
-    TitleText.TextSize = 18
-    TitleText.Font = Enum.Font.GothamBold
-    TitleText.TextXAlignment = Enum.TextXAlignment.Left
-    TitleText.Parent = TitleBar
-    
-    local SubText = Instance.new("TextLabel")
-    SubText.Size = UDim2.new(1, -50, 0, 20)
-    SubText.Position = UDim2.new(0, 15, 0, 25)
-    SubText.BackgroundTransparency = 1
-    SubText.Text = subtitle
-    SubText.TextColor3 = Color3.fromRGB(140, 140, 160)
-    SubText.TextSize = 11
-    SubText.Font = Enum.Font.Gotham
-    SubText.TextXAlignment = Enum.TextXAlignment.Left
-    SubText.Parent = TitleBar
-    
-    -- Close Button
-    local CloseBtn = Instance.new("TextButton")
-    CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-    CloseBtn.Position = UDim2.new(1, -40, 0, 8)
-    CloseBtn.BackgroundTransparency = 1
-    CloseBtn.Text = "✕"
-    CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    CloseBtn.TextSize = 16
-    CloseBtn.Font = Enum.Font.Gotham
-    CloseBtn.Parent = TitleBar
-    
-    CloseBtn.MouseButton1Click:Connect(function()
-        MainFrame.Visible = not MainFrame.Visible
-    end)
-    
-    -- Drag functionality
-    local Dragging = false
-    local DragInput, DragStart, StartPos
-    
-    TitleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            Dragging = true
-            DragStart = input.Position
-            StartPos = MainFrame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    Dragging = false
+-- Combat Tab
+local CombatTab = Window:CreateTab("⚔️ Combate", "Skull")
+
+-- Weapon Label
+local weaponLabel = CombatTab:CreateLabel("🔫 Atraso de tiro: carregando...")
+
+-- Update label
+task.spawn(function()
+    while true do
+        weaponLabel:Set("🔫 Arma atual: " .. getEquippedWeaponName())
+        task.wait(0.1)
+    end
+end)
+
+-- Auto Headshots
+local autoKill = true
+local shootDelay = 0.5
+
+-- Text input for shot delay
+CombatTab:CreateInput({
+    Name = "⏱️ Atraso de tiro (0-5 sec)",
+    PlaceholderText = "0.5",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        local num = tonumber(text)
+        if num and num >= 0 and num <= 2 then
+            shootDelay = num
+            Rayfield:Notify({
+                Title = "Success",
+                Content = "Shot delay set to "..num.." seconds",
+                Duration = 3,
+                Image = 4483362458
+            })
+        else
+            Rayfield:Notify({
+                Title = "Error",
+                Content = "Please enter a number between 0 and 5",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end,
+})
+
+CombatTab:CreateToggle({
+    Name = "🔪 Auto Headshots",
+    CurrentValue = false,
+    Flag = "AutoKillZombies",
+    Callback = function(state)
+        autoKill = state
+        if state then
+            task.spawn(function()
+                while autoKill do
+                    local enemies = workspace:FindFirstChild("Enemies")
+                    local shootRemote = Remotes:FindFirstChild("ShootEnemy")
+                    if enemies and shootRemote then
+                        local weapon = getEquippedWeaponName()
+                        for _, zombie in pairs(enemies:GetChildren()) do
+                            if zombie:IsA("Model") then
+                                local head = zombie:FindFirstChild("Head")
+                                if head then
+                                    local args = {zombie, head, head.Position, 0.5, weapon}
+                                    pcall(function() shootRemote:FireServer(unpack(args)) end)
+                                end
+                            end
+                        end
+                    end
+                    task.wait(shootDelay)
                 end
             end)
         end
-    end)
-    
-    TitleBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement and Dragging then
-            local Delta = input.Position - DragStart
-            MainFrame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
-        end
-    end)
-    
-    -- Tab Bar
-    local TabBar = Instance.new("Frame")
-    TabBar.Size = UDim2.new(1, 0, 0, 35)
-    TabBar.Position = UDim2.new(0, 0, 0, 45)
-    TabBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    TabBar.BackgroundTransparency = 0.2
-    TabBar.BorderSizePixel = 0
-    TabBar.Parent = MainFrame
-    
-    -- Content Area
-    local ContentArea = Instance.new("Frame")
-    ContentArea.Size = UDim2.new(1, -20, 1, -90)
-    ContentArea.Position = UDim2.new(0, 10, 0, 85)
-    ContentArea.BackgroundTransparency = 1
-    ContentArea.Parent = MainFrame
-    
-    Window.Tabs = {}
-    Window.CurrentTab = nil
-    
-    function Window:AddTab(tabName)
-        local TabBtn = Instance.new("TextButton")
-        TabBtn.Size = UDim2.new(0, 100, 1, 0)
-        TabBtn.BackgroundTransparency = 1
-        TabBtn.Text = tabName
-        TabBtn.TextColor3 = Color3.fromRGB(170, 170, 190)
-        TabBtn.TextSize = 13
-        TabBtn.Font = Enum.Font.GothamSemibold
-        TabBtn.Parent = TabBar
-        
-        local TabContent = Instance.new("ScrollingFrame")
-        TabContent.Size = UDim2.new(1, 0, 1, 0)
-        TabContent.BackgroundTransparency = 1
-        TabContent.BorderSizePixel = 0
-        TabContent.ScrollBarThickness = 4
-        TabContent.ScrollBarImageColor3 = Color3.fromRGB(100, 70, 180)
-        TabContent.Visible = false
-        TabContent.Parent = ContentArea
-        
-        local Padding = Instance.new("UIPadding")
-        Padding.PaddingLeft = UDim.new(0, 10)
-        Padding.PaddingRight = UDim.new(0, 10)
-        Padding.PaddingTop = UDim.new(0, 5)
-        Padding.PaddingBottom = UDim.new(0, 5)
-        Padding.Parent = TabContent
-        
-        local Layout = Instance.new("UIListLayout")
-        Layout.SortOrder = Enum.SortOrder.LayoutOrder
-        Layout.Padding = UDim.new(0, 8)
-        Layout.Parent = TabContent
-        
-        TabBtn.MouseButton1Click:Connect(function()
-            for _, child in pairs(ContentArea:GetChildren()) do
-                if child:IsA("ScrollingFrame") then
-                    child.Visible = false
-                end
-            end
-            for _, btn in pairs(TabBar:GetChildren()) do
-                if btn:IsA("TextButton") then
-                    btn.TextColor3 = Color3.fromRGB(170, 170, 190)
-                end
-            end
-            TabContent.Visible = true
-            TabBtn.TextColor3 = Color3.fromRGB(210, 180, 255)
-        end)
-        
-        if #Window.Tabs == 0 then
-            TabContent.Visible = true
-            TabBtn.TextColor3 = Color3.fromRGB(210, 180, 255)
-        end
-        
-        local Tab = {Content = TabContent}
-        
-        function Tab:AddSection(title)
-            local Section = Instance.new("Frame")
-            Section.Size = UDim2.new(1, 0, 0, 0)
-            Section.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-            Section.BackgroundTransparency = 0.3
-            Section.BorderSizePixel = 0
-            Section.Parent = TabContent
-            
-            local SectionCorner = Instance.new("UICorner")
-            SectionCorner.CornerRadius = UDim.new(0, 8)
-            SectionCorner.Parent = Section
-            
-            local SectionTitle = Instance.new("TextLabel")
-            SectionTitle.Size = UDim2.new(1, -20, 0, 30)
-            SectionTitle.Position = UDim2.new(0, 10, 0, 5)
-            SectionTitle.BackgroundTransparency = 1
-            SectionTitle.Text = title
-            SectionTitle.TextColor3 = Color3.fromRGB(210, 180, 255)
-            SectionTitle.TextSize = 14
-            SectionTitle.Font = Enum.Font.GothamBold
-            SectionTitle.TextXAlignment = Enum.TextXAlignment.Left
-            SectionTitle.Parent = Section
-            
-            local SectionLayout = Instance.new("UIListLayout")
-            SectionLayout.Parent = Section
-            SectionLayout.Padding = UDim.new(0, 5)
-            SectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
-            
-            local Elements = {}
-            
-            function Elements:AddToggle(config)
-                local ToggleFrame = Instance.new("Frame")
-                ToggleFrame.Size = UDim2.new(1, -20, 0, 40)
-                ToggleFrame.Position = UDim2.new(0, 10, 0, 0)
-                ToggleFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
-                ToggleFrame.BackgroundTransparency = 0.5
-                ToggleFrame.BorderSizePixel = 0
-                ToggleFrame.Parent = Section
-                
-                local ToggleCorner = Instance.new("UICorner")
-                ToggleCorner.CornerRadius = UDim.new(0, 6)
-                ToggleCorner.Parent = ToggleFrame
-                
-                local Label = Instance.new("TextLabel")
-                Label.Size = UDim2.new(0.7, -10, 1, 0)
-                Label.Position = UDim2.new(0, 10, 0, 0)
-                Label.BackgroundTransparency = 1
-                Label.Text = config.Title
-                Label.TextColor3 = Color3.fromRGB(210, 210, 230)
-                Label.TextSize = 12
-                Label.Font = Enum.Font.Gotham
-                Label.TextXAlignment = Enum.TextXAlignment.Left
-                Label.Parent = ToggleFrame
-                
-                local Desc = Instance.new("TextLabel")
-                Desc.Size = UDim2.new(0.7, -10, 0, 15)
-                Desc.Position = UDim2.new(0, 10, 0, 22)
-                Desc.BackgroundTransparency = 1
-                Desc.Text = config.Description or ""
-                Desc.TextColor3 = Color3.fromRGB(130, 130, 150)
-                Desc.TextSize = 10
-                Desc.Font = Enum.Font.Gotham
-                Desc.TextXAlignment = Enum.TextXAlignment.Left
-                Desc.Parent = ToggleFrame
-                
-                local Btn = Instance.new("TextButton")
-                Btn.Size = UDim2.new(0, 50, 0, 26)
-                Btn.Position = UDim2.new(1, -60, 0.5, -13)
-                Btn.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-                Btn.BorderSizePixel = 0
-                Btn.Text = "OFF"
-                Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-                Btn.TextSize = 12
-                Btn.Font = Enum.Font.GothamBold
-                Btn.Parent = ToggleFrame
-                
-                local BtnCorner = Instance.new("UICorner")
-                BtnCorner.CornerRadius = UDim.new(1, 0)
-                BtnCorner.Parent = Btn
-                
-                local state = false
-                
-                Btn.MouseButton1Click:Connect(function()
-                    state = not state
-                    if state then
-                        Btn.BackgroundColor3 = Color3.fromRGB(120, 80, 200)
-                        Btn.Text = "ON"
-                    else
-                        Btn.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-                        Btn.Text = "OFF"
-                    end
-                    config.Callback(state)
-                end)
-                
-                ToggleFrame.Size = UDim2.new(1, -20, 0, 45)
-                return {SetValue = function(v)
-                    state = v
-                    if v then
-                        Btn.BackgroundColor3 = Color3.fromRGB(120, 80, 200)
-                        Btn.Text = "ON"
-                    else
-                        Btn.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-                        Btn.Text = "OFF"
-                    end
-                end}
-            end
-            
-            function Elements:AddSlider(config)
-                local SliderFrame = Instance.new("Frame")
-                SliderFrame.Size = UDim2.new(1, -20, 0, 55)
-                SliderFrame.Position = UDim2.new(0, 10, 0, 0)
-                SliderFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
-                SliderFrame.BackgroundTransparency = 0.5
-                SliderFrame.BorderSizePixel = 0
-                SliderFrame.Parent = Section
-                
-                local SliderCorner = Instance.new("UICorner")
-                SliderCorner.CornerRadius = UDim.new(0, 6)
-                SliderCorner.Parent = SliderFrame
-                
-                local Label = Instance.new("TextLabel")
-                Label.Size = UDim2.new(1, -80, 0, 20)
-                Label.Position = UDim2.new(0, 10, 0, 5)
-                Label.BackgroundTransparency = 1
-                Label.Text = config.Title
-                Label.TextColor3 = Color3.fromRGB(210, 210, 230)
-                Label.TextSize = 12
-                Label.Font = Enum.Font.Gotham
-                Label.TextXAlignment = Enum.TextXAlignment.Left
-                Label.Parent = SliderFrame
-                
-                local ValueLabel = Instance.new("TextLabel")
-                ValueLabel.Size = UDim2.new(0, 50, 0, 20)
-                ValueLabel.Position = UDim2.new(1, -60, 0, 5)
-                ValueLabel.BackgroundTransparency = 1
-                ValueLabel.Text = tostring(config.Default)
-                ValueLabel.TextColor3 = Color3.fromRGB(210, 180, 255)
-                ValueLabel.TextSize = 12
-                ValueLabel.Font = Enum.Font.GothamBold
-                ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
-                ValueLabel.Parent = SliderFrame
-                
-                local SliderBar = Instance.new("Frame")
-                SliderBar.Size = UDim2.new(1, -20, 0, 4)
-                SliderBar.Position = UDim2.new(0, 10, 0, 35)
-                SliderBar.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-                SliderBar.BorderSizePixel = 0
-                SliderBar.Parent = SliderFrame
-                
-                local SliderBarCorner = Instance.new("UICorner")
-                SliderBarCorner.CornerRadius = UDim.new(1, 0)
-                SliderBarCorner.Parent = SliderBar
-                
-                local Fill = Instance.new("Frame")
-                Fill.Size = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), 0, 1, 0)
-                Fill.BackgroundColor3 = Color3.fromRGB(120, 80, 200)
-                Fill.BorderSizePixel = 0
-                Fill.Parent = SliderBar
-                
-                local FillCorner = Instance.new("UICorner")
-                FillCorner.CornerRadius = UDim.new(1, 0)
-                FillCorner.Parent = Fill
-                
-                local value = config.Default
-                
-                local function Update(input)
-                    local pos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
-                    value = math.floor(config.Min + (config.Max - config.Min) * pos)
-                    Fill.Size = UDim2.new(pos, 0, 1, 0)
-                    ValueLabel.Text = tostring(value)
-                    config.Callback(value)
-                end
-                
-                SliderBar.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        Update(input)
-                        local conn
-                        conn = RunService.RenderStepped:Connect(function()
-                            if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                                Update(UserInputService:GetMouseLocation())
-                            else
-                                conn:Disconnect()
-                            end
-                        end)
-                    end
-                end)
-                
-                return {SetValue = function(v)
-                    value = v
-                    local pos = (v - config.Min) / (config.Max - config.Min)
-                    Fill.Size = UDim2.new(pos, 0, 1, 0)
-                    ValueLabel.Text = tostring(v)
-                end}
-            end
-            
-            function Elements:AddButton(config)
-                local Btn = Instance.new("TextButton")
-                Btn.Size = UDim2.new(1, -20, 0, 35)
-                Btn.Position = UDim2.new(0, 10, 0, 0)
-                Btn.BackgroundColor3 = Color3.fromRGB(60, 45, 110)
-                Btn.BackgroundTransparency = 0.6
-                Btn.BorderSizePixel = 0
-                Btn.Text = config.Title
-                Btn.TextColor3 = Color3.fromRGB(220, 220, 240)
-                Btn.TextSize = 13
-                Btn.Font = Enum.Font.GothamBold
-                Btn.Parent = Section
-                
-                local BtnCorner = Instance.new("UICorner")
-                BtnCorner.CornerRadius = UDim.new(0, 6)
-                BtnCorner.Parent = Btn
-                
-                Btn.MouseButton1Click:Connect(config.Callback)
-                
-                Btn.MouseEnter:Connect(function()
-                    TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.3}):Play()
-                end)
-                Btn.MouseLeave:Connect(function()
-                    TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.6}):Play()
-                end)
-            end
-            
-            function Elements:AddParagraph(config)
-                local Para = Instance.new("Frame")
-                Para.Size = UDim2.new(1, -20, 0, 55)
-                Para.Position = UDim2.new(0, 10, 0, 0)
-                Para.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
-                Para.BackgroundTransparency = 0.5
-                Para.BorderSizePixel = 0
-                Para.Parent = Section
-                
-                local ParaCorner = Instance.new("UICorner")
-                ParaCorner.CornerRadius = UDim.new(0, 6)
-                ParaCorner.Parent = Para
-                
-                local TitleLabel = Instance.new("TextLabel")
-                TitleLabel.Size = UDim2.new(1, -20, 0, 20)
-                TitleLabel.Position = UDim2.new(0, 10, 0, 5)
-                TitleLabel.BackgroundTransparency = 1
-                TitleLabel.Text = config.Title
-                TitleLabel.TextColor3 = Color3.fromRGB(210, 180, 255)
-                TitleLabel.TextSize = 13
-                TitleLabel.Font = Enum.Font.GothamBold
-                TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-                TitleLabel.Parent = Para
-                
-                local ContentLabel = Instance.new("TextLabel")
-                ContentLabel.Size = UDim2.new(1, -20, 0, 30)
-                ContentLabel.Position = UDim2.new(0, 10, 0, 25)
-                ContentLabel.BackgroundTransparency = 1
-                ContentLabel.Text = config.Content
-                ContentLabel.TextColor3 = Color3.fromRGB(150, 150, 170)
-                ContentLabel.TextSize = 11
-                ContentLabel.Font = Enum.Font.Gotham
-                ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
-                ContentLabel.TextWrapped = true
-                ContentLabel.Parent = Para
-            end
-            
-            -- Update section height
-            local function UpdateHeight()
-                local children = Section:GetChildren()
-                local maxY = 0
-                for _, child in pairs(children) do
-                    if child:IsA("Frame") or child:IsA("TextButton") then
-                        local y = child.Position.Y.Offset + child.Size.Y.Offset
-                        if y > maxY then maxY = y end
-                    end
-                end
-                Section.Size = UDim2.new(1, 0, 0, maxY + 15)
-            end
-            
-            SectionLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateHeight)
-            task.wait()
-            UpdateHeight()
-            
-            return Elements
-        end
-        
-        table.insert(Window.Tabs, Tab)
-        return Tab
-    end
-    
-    return Window
-end
-
--- [[ NOTIFICAÇÃO ]]
-local function Notify(title, msg, duration)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 280, 0, 45)
-    frame.Position = UDim2.new(1, -290, 0, 10)
-    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    frame.BackgroundTransparency = 0.1
-    frame.BorderSizePixel = 0
-    frame.Parent = ScreenGui
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-    
-    local stroke = Instance.new("UIStroke")
-    stroke.Thickness = 1
-    stroke.Color = Color3.fromRGB(100, 70, 180)
-    stroke.Transparency = 0.5
-    stroke.Parent = frame
-    
-    local titleLbl = Instance.new("TextLabel")
-    titleLbl.Size = UDim2.new(1, -10, 0, 20)
-    titleLbl.Position = UDim2.new(0, 5, 0, 5)
-    titleLbl.BackgroundTransparency = 1
-    titleLbl.Text = title
-    titleLbl.TextColor3 = Color3.fromRGB(210, 180, 255)
-    titleLbl.TextSize = 13
-    titleLbl.Font = Enum.Font.GothamBold
-    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
-    titleLbl.Parent = frame
-    
-    local msgLbl = Instance.new("TextLabel")
-    msgLbl.Size = UDim2.new(1, -10, 0, 20)
-    msgLbl.Position = UDim2.new(0, 5, 0, 24)
-    msgLbl.BackgroundTransparency = 1
-    msgLbl.Text = msg
-    msgLbl.TextColor3 = Color3.fromRGB(170, 170, 190)
-    msgLbl.TextSize = 11
-    msgLbl.Font = Enum.Font.Gotham
-    msgLbl.TextXAlignment = Enum.TextXAlignment.Left
-    msgLbl.Parent = frame
-    
-    frame.Position = UDim2.new(1, 0, 0, 10)
-    TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {Position = UDim2.new(1, -290, 0, 10)}):Play()
-    
-    task.wait(duration or 3)
-    TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {Position = UDim2.new(1, 0, 0, 10)}):Play()
-    task.wait(0.4)
-    frame:Destroy()
-end
-
--- [[ CRIAR INTERFACE ]]
-local MainUI = UI:CreateWindow("MICHAEL'S ZOMBIES", "Xeno Optimized | Premium Features")
-
--- [[ HOME TAB ]]
-local Home = MainUI:AddTab("HOME")
-local HomeSection = Home:AddSection("Dashboard")
-HomeSection:AddParagraph({
-    Title = "✅ Script Status",
-    Content = "Jogador: " .. Player.Name .. "\nExecutor: Xeno Compatível\nStatus: Funcionando"
-})
-HomeSection:AddParagraph({
-    Title = "📌 Instruções",
-    Content = "• Arraste pelo topo para mover\n• Botão ✕ para fechar\n• Use RightCtrl se precisar"
-})
-
--- [[ COMBAT TAB ]]
-local Combat = MainUI:AddTab("COMBAT")
-local CombatSection = Combat:AddSection("⚔️ Combat System")
-
-local KillAuraToggle = CombatSection:AddToggle({
-    Title = "Kill Aura",
-    Description = "Ataca zumbis automaticamente",
-    Default = false,
-    Callback = function(val) Features.KillAura = val end
-})
-
-CombatSection:AddSlider({
-    Title = "Alcance",
-    Default = 25,
-    Min = 10,
-    Max = 50,
-    Callback = function(val) Features.KillAuraRange = val end
-})
-
-CombatSection:AddToggle({
-    Title = "Knife Mode",
-    Description = "Usa faca ao invés da arma",
-    Default = false,
-    Callback = function(val) Features.KnifeMode = val end
-})
-
-CombatSection:AddToggle({
-    Title = "Headshot Only",
-    Description = "Mira apenas na cabeça",
-    Default = false,
-    Callback = function(val) Features.Headshot = val end
-})
-
-CombatSection:AddToggle({
-    Title = "Auto Shoot",
-    Description = "Atira automaticamente",
-    Default = false,
-    Callback = function(val) Features.AutoShoot = val end
-})
-
--- [[ KILL AURA LOOP ]]
-local function GetTool()
-    local char = Player.Character
-    if not char then return nil end
-    for _, tool in pairs(char:GetChildren()) do
-        if tool:IsA("Tool") then
-            return tool
-        end
-    end
-    return nil
-end
-
-task.spawn(function()
-    while task.wait(0.1) do
-        if not Features.KillAura then continue end
-        
-        local char = Player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then continue end
-        
-        local closest = nil
-        local closestDist = Features.KillAuraRange
-        
-        for _, obj in pairs(Workspace:GetChildren()) do
-            if obj:IsA("Model") and obj:FindFirstChild("Humanoid") then
-                local isPlayer = game:GetService("Players"):FindFirstChild(obj.Name)
-                if not isPlayer and obj.Humanoid.Health > 0 then
-                    local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso")
-                    if root then
-                        local dist = (hrp.Position - root.Position).Magnitude
-                        if dist < closestDist then
-                            closestDist = dist
-                            closest = obj
-                        end
-                    end
-                end
-            end
-        end
-        
-        if closest and closestDist <= Features.KillAuraRange then
-            -- Knife mode
-            if Features.KnifeMode then
-                local knife = Player.Backpack:FindFirstChild("Knife") or char:FindFirstChild("Knife")
-                if knife then
-                    char.Humanoid:EquipTool(knife)
-                end
-            end
-            
-            -- Atacar
-            local target = Features.Headshot and closest:FindFirstChild("Head") or closest:FindFirstChild("HumanoidRootPart")
-            if target then
-                local remote = ReplicatedStorage:FindFirstChild("DamageEvent") or ReplicatedStorage:FindFirstChild("DealDamage")
-                if remote then
-                    remote:FireServer(closest, target.Position)
-                end
-            end
-        end
-    end
-end)
-
--- [[ AUTO FARM TAB ]]
-local AutoFarm = MainUI:AddTab("AUTO FARM")
-local FarmSection = AutoFarm:AddSection("🤖 Auto Collection")
-
-FarmSection:AddToggle({
-    Title = "Auto Collect Perks",
-    Description = "Coleta power-ups automaticamente",
-    Default = false,
-    Callback = function(val) Features.AutoCollect = val end
-})
-
-FarmSection:AddToggle({
-    Title = "Auto Collect Points",
-    Description = "Coleta pontos/essência",
-    Default = false,
-    Callback = function(val) Features.AutoPoints = val end
-})
-
-FarmSection:AddButton({
-    Title = "Pack-a-Punch (1 Click)",
-    Callback = function()
-        local remote = ReplicatedStorage:FindFirstChild("UpgradeWeapon") or ReplicatedStorage:FindFirstChild("PackAPunch")
-        if remote then
-            remote:FireServer()
-            Notify("Auto Farm", "Pack-a-Punch solicitado!", 2)
-        else
-            Notify("Erro", "Remote não encontrado", 2)
-        end
     end
 })
 
--- [[ AUTO COLLECT LOOP ]]
-task.spawn(function()
-    while task.wait(0.3) do
-        if not Features.AutoCollect and not Features.AutoPoints then continue end
-        
-        local char = Player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then continue end
-        
-        for _, part in pairs(Workspace:GetDescendants()) do
-            if part:IsA("BasePart") and part.Parent then
-                local name = part.Name:lower()
-                local shouldCollect = false
-                
-                if Features.AutoCollect and (name:find("perk") or name:find("power") or name:find("max") or name:find("insta")) then
-                    shouldCollect = true
-                end
-                if Features.AutoPoints and (name:find("point") or name:find("essence") or name:find("cash") or name:find("money")) then
-                    shouldCollect = true
-                end
-                
-                if shouldCollect and (hrp.Position - part.Position).Magnitude < 15 then
-                    -- Mover para o item
-                    local tween = TweenService:Create(hrp, TweenInfo.new(0.2), {CFrame = part.CFrame + Vector3.new(0, 3, 0)})
-                    tween:Play()
+CombatTab:CreateToggle({
+    Name = "⏩ Pular Rodada Automática",
+    CurrentValue = false,
+    Flag = "AutoSkipRound",
+    Callback = function(state)
+        autoSkip = state
+        if state then
+            task.spawn(function()
+                while autoSkip do
+                    local skip = Remotes:FindFirstChild("CastClientSkipVote")
+                    if skip then
+                        pcall(function() skip:FireServer() end)
+                    end
                     task.wait(0.1)
                 end
-            end
-        end
-    end
-end)
-
--- [[ PLAYER TAB ]]
-local PlayerTab = MainUI:AddTab("PLAYER")
-local PlayerSection = PlayerTab:AddSection("👤 Player Mods")
-
-PlayerSection:AddToggle({
-    Title = "God Mode",
-    Description = "Imortalidade",
-    Default = false,
-    Callback = function(val)
-        Features.GodMode = val
-        if val and Player.Character and Player.Character:FindFirstChild("Humanoid") then
-            Player.Character.Humanoid:BreakJoints()
+            end)
         end
     end
 })
 
-PlayerSection:AddToggle({
-    Title = "Infinite Ammo",
-    Description = "Munição infinita",
-    Default = false,
-    Callback = function(val) Features.InfAmmo = val end
-})
-
-PlayerSection:AddToggle({
-    Title = "No Reload",
-    Description = "Sem necessidade de recarregar",
-    Default = false,
-    Callback = function(val) Features.NoReload = val end
-})
-
-PlayerSection:AddToggle({
-    Title = "Infinite Sprint",
-    Description = "Corrida infinita",
-    Default = false,
-    Callback = function(val) Features.InfSprint = val end
-})
-
-PlayerSection:AddSlider({
-    Title = "Walk Speed",
-    Default = 16,
-    Min = 16,
-    Max = 120,
-    Callback = function(val)
-        Features.WalkSpeed = val
-        if Player.Character and Player.Character:FindFirstChild("Humanoid") then
-            Player.Character.Humanoid.WalkSpeed = val
-        end
+CombatTab:CreateSlider({
+    Name = "🏃‍♂️ Velocidade de caminhada",
+    Range = {16, 200},
+    Increment = 1,
+    Suffix = "unidades",
+    CurrentValue = 16,
+    Flag = "WalkSpeed",
+    Callback = function(Value)
+        game.Players.LocalPlayer.Character:WaitForChild("Humanoid").WalkSpeed = Value
     end
 })
 
-PlayerSection:AddSlider({
-    Title = "Jump Power",
-    Default = 50,
-    Min = 50,
-    Max = 300,
-    Callback = function(val)
-        Features.JumpPower = val
-        if Player.Character and Player.Character:FindFirstChild("Humanoid") then
-            Player.Character.Humanoid.JumpPower = val
-        end
-    end
-})
+-- Misc Tab
+local MiscTab = Window:CreateTab("✨ Utilitários", "Sparkles")
 
--- [[ PLAYER MODS LOOP ]]
-Player.CharacterAdded:Connect(function(char)
-    task.wait(0.5)
-    local hum = char:FindFirstChild("Humanoid")
-    if hum then
-        hum.WalkSpeed = Features.WalkSpeed
-        hum.JumpPower = Features.JumpPower
-        if Features.GodMode then
-            hum:BreakJoints()
-        end
-    end
-end)
+MiscTab:CreateSection("🔧 Ferramentas")
 
-task.spawn(function()
-    while task.wait(0.2) do
-        local char = Player.Character
-        if not char then continue end
-        
-        if Features.InfSprint and char:FindFirstChild("Humanoid") then
-            char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Sprinting, true)
-        end
-        
-        if Features.InfAmmo or Features.NoReload then
-            local tool = GetTool()
-            if tool then
-                if Features.InfAmmo and tool:FindFirstChild("Ammo") then
-                    tool.Ammo.Value = 999
-                end
-                if Features.NoReload and tool:FindFirstChild("Reloading") then
-                    tool.Reloading.Value = false
+MiscTab:CreateButton({
+    Name = "🚪 Excluir Todas as Portas",
+    Callback = function()
+        local doorsFolder = workspace:FindFirstChild("Doors")
+        if doorsFolder then
+            for _, group in pairs(doorsFolder:GetChildren()) do
+                if group:IsA("Folder") or group:IsA("Model") then
+                    group:Destroy()
                 end
             end
+            Rayfield:Notify({
+                Title = "Success",
+                Content = "All doors deleted!",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+MiscTab:CreateButton({
+    Name = "🎯 Munição Infinita",
+    Callback = function()
+        local vars = player:FindFirstChild("Variables")
+        if not vars then return end
+
+        local ammoAttributes = {  
+            "Primary_Mag",  
+            "Secondary_Mag"  
+        }  
+
+        for _, attr in ipairs(ammoAttributes) do  
+            if vars:GetAttribute(attr) ~= nil then  
+                vars:SetAttribute(attr, 100000000)  
+            end  
+        end
+        Rayfield:Notify({
+            Title = "Magazines",
+            Content = "Infinite magazines set!",
+            Duration = 3,
+            Image = 4483362458
+        })
+    end
+})
+
+MiscTab:CreateSection("💎 Melhorias visuais")
+
+MiscTab:CreateButton({
+    Name = "🌟 Ative Todas as Vantagens",
+    Callback = function()
+        local vars = player:FindFirstChild("Variables")
+        if not vars then return end
+
+        local perks = {  
+            "Bandoiler_Perk",  
+            "DoubleUp_Perk",  
+            "Haste_Perk",  
+            "Tank_Perk",  
+            "GasMask_Perk",  
+            "DeadShot_Perk",  
+            "DoubleMag_Perk",  
+            "WickedGrenade_Perk"  
+        }  
+
+        for _, perk in ipairs(perks) do  
+            if vars:GetAttribute(perk) ~= nil then  
+                vars:SetAttribute(perk, true)  
+            end  
+        end
+        Rayfield:Notify({
+            Title = "Perks",
+            Content = "All perks activated!",
+            Duration = 3,
+            Image = 4483362458
+        })
+    end
+})
+
+MiscTab:CreateButton({
+    Name = "🔫 Aprimorar Armas",
+    Callback = function()
+        local vars = player:FindFirstChild("Variables")
+        if not vars then return end
+
+        local enchants = {  
+            "Primary_Enhanced",  
+            "Secondary_Enhanced"  
+        }  
+
+        for _, attr in ipairs(enchants) do  
+            if vars:GetAttribute(attr) ~= nil then  
+                vars:SetAttribute(attr, true)  
+            end  
+        end
+        Rayfield:Notify({
+            Title = "Enhancement",
+            Content = "Weapons enhanced!",
+            Duration = 3,
+            Image = 4483362458
+        })
+    end
+})
+
+
+MiscTab:CreateButton({
+    Name = "💫 Armas Celestiais",
+    Callback = function()
+        local gunData = player:FindFirstChild("GunData")
+        if not gunData then return end
+
+        for _, value in ipairs(gunData:GetChildren()) do  
+            if value:IsA("StringValue") then  
+                value.Value = "celestial"  
+            end  
+        end
+        Rayfield:Notify({
+            Title = "Weapons",
+            Content = "Set to Celestial tier!",
+            Duration = 3,
+            Image = 4483362458
+        })
+    end
+})
+
+-- Open Tab
+local OpenTab = Window:CreateTab("🎁 Caixas", "Gift")
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local selectedQuantity = 1
+local selectedOutfitType = "Random" -- для Outfit кейсів
+
+OpenTab:CreateDropdown({
+    Name = "🔢 Quantidade aberta",
+    Options = {"1", "25", "50", "200"},
+    CurrentOption = "1",
+    Flag = "OpenQuantity",
+    Callback = function(Option)
+        selectedQuantity = tonumber(Option)
+    end,
+})
+
+OpenTab:CreateSection("📦 Caixas de abertura automática")
+
+-- 🎽 Випадаючий список типів для Outfit кейсів
+OpenTab:CreateDropdown({
+    Name = "👕 Tipo de Roupa",
+    Options = {
+        "Aleatório", "Chapéu", "Acessório de Torso", "Acessório de Perna", "Acessório Facial", 
+        "Acessório de Braço", "Acessório de Costas", "Luvas", "Sapatos", "Cabelo",
+        "Camisa", "Calças", "Cor de Cabelo", "Cor da Pele", "Rosto"
+    },
+    CurrentOption = "Aleatório",
+    Callback = function(option)
+        selectedOutfitType = option
+    end,
+})
+
+-- 🕶️ Caixas Camufladas
+local autoOpenCamo = false
+OpenTab:CreateToggle({
+    Name = "🕶️ Caixas Camufladas",
+    CurrentValue = false,
+    Callback = function(state)
+        autoOpenCamo = state
+        if state then
+            task.spawn(function()
+                while autoOpenCamo do
+                    pcall(function()
+                        for i = 1, selectedQuantity do
+                            ReplicatedStorage.Remotes.OpenCamoCrate:InvokeServer("Random")
+                            task.wait(0.1)
+                        end
+                    end)
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+-- 👕 Caixas de Roupas
+local autoOpenOutfit = false
+OpenTab:CreateToggle({
+    Name = "👕 Caixas de Roupas",
+    CurrentValue = false,
+    Callback = function(state)
+        autoOpenOutfit = state
+        if state then
+            task.spawn(function()
+                while autoOpenOutfit do
+                    pcall(function()
+                        for i = 1, selectedQuantity do
+                            ReplicatedStorage.Remotes.OpenOutfitCrate:InvokeServer(selectedOutfitType)
+                            task.wait(0.1)
+                        end
+                    end)
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+-- 🐾 Caixas de Pet
+local autoOpenPet = false
+OpenTab:CreateToggle({
+    Name = "🐾 Caixas de Pet",
+    CurrentValue = false,
+    Callback = function(state)
+        autoOpenPet = state
+        if state then
+            task.spawn(function()
+                while autoOpenPet do
+                    pcall(function()
+                        for i = 1, selectedQuantity do
+                            ReplicatedStorage.Remotes.OpenPetCrate:InvokeServer(1)
+                            task.wait(0.1)
+                        end
+                    end)
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+-- 🔫 Caixas de Armas
+local autoOpenGun = false
+OpenTab:CreateToggle({
+    Name = "🔫 Caixas de Armas",
+    CurrentValue = false,
+    Callback = function(state)
+        autoOpenGun = state
+        if state then
+            task.spawn(function()
+                while autoOpenGun do
+                    pcall(function()
+                        for i = 1, selectedQuantity do
+                            ReplicatedStorage.Remotes.OpenGunCrate:InvokeServer(1)
+                            task.wait(0.1)
+                        end
+                    end)
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+
+-- Mod Tab
+local ModTab = Window:CreateTab("🌀 Mods", "Skull")
+
+-- ⬇ Змінні оголошуються глобально (всередині скрипта, але поза функціями)
+local spinning = false
+local angle = 0
+local speed = 5      -- ✅ глобально
+local radius = 15    -- ✅ глобально
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local HRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
+player.CharacterAdded:Connect(function(char)
+    HRP = char:WaitForChild("HumanoidRootPart")
+end)
+
+-- 🔁 Головне коло
+RunService.RenderStepped:Connect(function(dt)
+    if spinning and HRP then
+        local function findNearestBoss()
+            local bosses = {
+                workspace.Enemies:FindFirstChild("GoblinKing"),
+                workspace.Enemies:FindFirstChild("CaptainBoom"),
+                workspace.Enemies:FindFirstChild("Fungarth")
+            }
+
+            local nearestBoss = nil
+            local shortestDistance = math.huge
+
+            for _, boss in pairs(bosses) do
+                if boss and boss:FindFirstChild("Head") then
+                    local distance = (boss.Head.Position - HRP.Position).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        nearestBoss = boss
+                    end
+                end
+            end
+            return nearestBoss
+        end
+
+        local boss = findNearestBoss()
+        if boss and boss:FindFirstChild("Head") then
+            angle += dt * speed  -- ✅ використовує глобальну змінну
+            local bossPos = boss.Head.Position
+            local offset = Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius -- ✅ радіус
+            local orbitPos = bossPos + offset
+            HRP.CFrame = CFrame.new(Vector3.new(orbitPos.X, bossPos.Y, orbitPos.Z), bossPos)
         end
     end
 end)
 
--- [[ MISC TAB ]]
-local MiscTab = MainUI:AddTab("MISC")
-local MiscSection = MiscTab:AddSection("🛠️ Utilities")
+-- 🔘 Кнопка в меню
+ModTab:CreateToggle({
+    Name = "🌪️ Órbita ao Redor do Chefe",
+    CurrentValue = false,
+    Callback = function(value)
+        spinning = value
+    end
+})
 
-MiscSection:AddToggle({
-    Title = "Anti-AFK",
-    Description = "Evita kick por inatividade",
-    Default =
+-- ⚙️ Слайдер швидкості
+ModTab:CreateSlider({
+    Name = "⚡ Velocidade de Rotação",
+    Range = {1, 20},
+    Increment = 0.1,
+    Suffix = "x",
+    CurrentValue = 5,
+    Callback = function(val)
+        speed = val   -- ✅ оновлює глобальну змінну
+    end
+})
+
+-- 📏 Слайдер радіуса
+ModTab:CreateSlider({
+    Name = "📏 Raio da Órbita",
+    Range = {5, 100},
+    Increment = 1,
+    Suffix = "unidades",
+    CurrentValue = 15,
+    Callback = function(val)
+        radius = val  -- ✅ оновлює глобальну змінну
+    end
+})
+
+
+ModTab:CreateButton({
+    Name = "🛸 TP para Plataforma Inteligente",
+    Callback = function()
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local player = Players.LocalPlayer
+        local HRP = player.Character and player.Character:WaitForChild("HumanoidRootPart")
+
+        if not HRP then
+            warn("❌ HumanoidRootPart не знайдено")
+            return
+        end
+
+        local currentPos = HRP.Position
+        local targetPos = currentPos + Vector3.new(0, 60, 0)
+
+        -- 🧱 Створюємо платформу
+        local platform = Instance.new("Part")
+        platform.Size = Vector3.new(20, 1, 20)
+        platform.Anchored = true
+        platform.Position = targetPos - Vector3.new(0, 2, 0)
+        platform.Color = Color3.fromRGB(120, 120, 120)
+        platform.Material = Enum.Material.Metal
+        platform.Name = "SmartPlatform"
+        platform.Parent = workspace
+
+        -- ⏫ Телепорт гравця трохи вище платформи
+        HRP.CFrame = CFrame.new(targetPos + Vector3.new(0, 2, 0))
+
+        -- ⏱️ Таймер самознищення, коли гравець сходить
+        local isStanding = true
+        local lastTouch = tick()
+
+        -- Перевірка кожен кадр
+        local conn
+        conn = RunService.RenderStepped:Connect(function()
+            if not platform or not platform.Parent then
+                conn:Disconnect()
+                return
+            end
+
+            local char = player.Character
+            local humanoidRoot = char and char:FindFirstChild("HumanoidRootPart")
+            if not humanoidRoot then return end
+
+            local rayOrigin = humanoidRoot.Position
+            local rayDirection = Vector3.new(0, -5, 0)
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterDescendantsInstances = {char}
+            raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+            local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+            if raycastResult and raycastResult.Instance == platform then
+                -- Гравець стоїть на платформі
+                lastTouch = tick()
+            end
+
+            -- Якщо пройшло більше 10 секунд після того, як гравець стояв — видалити
+            if tick() - lastTouch > 10 then
+                platform:Destroy()
+                conn:Disconnect()
+            end
+        end)
+    end
+})
+
+
+
+
+-- Load config
+Rayfield:LoadConfiguration()
